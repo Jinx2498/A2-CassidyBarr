@@ -1,0 +1,2 @@
+15:26:00,251 DEBUG SceneManager:17 - Instance is null. Was it called before Awake?
+17:34:23,989 DEBUG WeebleConsole:17 - MessageViewer has no MessageQueue assigned.
