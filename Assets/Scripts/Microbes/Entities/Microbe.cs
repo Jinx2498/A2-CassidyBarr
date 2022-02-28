@@ -4,6 +4,7 @@ using GameBrains.EventSystem;
 using Microbes.Movement;
 using Microbes.Population_Control;
 using UnityEngine;
+using GameBrains.FiniteStateMachine;
 
 namespace Microbes.Entities
 {
@@ -33,6 +34,8 @@ namespace Microbes.Entities
         AudioSource audioSource;
         MicrobeTypes foodTypes;
         MicrobeTypes avoidTypes;
+
+        MicrobeTypes datingTypes;
 
         // The type of microbe we are.
         public MicrobeTypes microbeType;
@@ -83,11 +86,23 @@ namespace Microbes.Entities
             get => avoidTypes;
             set => avoidTypes = value;
         }
+
+        public MicrobeTypes DateTypes { 
+            get => datingTypes; 
+            set => datingTypes = value; 
+        
+        }
         
         public MicrobeMotor MicrobeMotor
         {
             get => microbeMotor;
             set => microbeMotor = value;
+        }
+
+        public MicrobeTypes MicrobeType
+        {
+            get => microbeType;
+            set => microbeType = value;
         }
 
         public override void Awake()
@@ -174,6 +189,7 @@ namespace Microbes.Entities
 
             var microbe = microbeObject.GetComponent<Microbe>();
             microbe.microbeType = microbeType;
+            microbe.DateTypes = GetDatingTypes(microbeType);
             microbe.FoodTypes = GetFoodTypes(microbeType);
             microbe.AvoidTypes = GetAvoidTypes(microbeType);
 
@@ -260,6 +276,84 @@ namespace Microbes.Entities
             }
 
             return avoidTypes;
+        }
+
+        private static MicrobeTypes GetDatingTypes(MicrobeTypes microbeType)
+        {
+            MicrobeTypes datingTypes;
+
+            switch (microbeType)
+            {
+                case MicrobeTypes.Blue:
+                    datingTypes = MicrobeTypes.Blue | MicrobeTypes.Yellow;
+                    break;
+                case MicrobeTypes.Red:
+                    datingTypes = MicrobeTypes.Red | MicrobeTypes.Green;
+                    break;
+                case MicrobeTypes.Green:
+                    datingTypes = MicrobeTypes.Green | MicrobeTypes.Red;
+                    break;
+                case MicrobeTypes.Yellow:
+                    datingTypes = MicrobeTypes.Yellow | MicrobeTypes.Blue;
+                    break;
+                default:
+                    datingTypes = MicrobeTypes.None;
+                    break;
+            }
+
+            return datingTypes;
+        }
+
+        private MicrobeTypes GenerateBabyMicrobeType(MicrobeTypes otherParentType)
+        {
+            MicrobeTypes babyType;
+            float random = Random.value;
+
+            
+            if (random > 0.3)
+            {
+                random = microbeType;
+            }
+            else if (random > 0.6)
+            {
+                babyType = otherParentType;
+            }
+            else
+            {
+                random = Random.value;
+                if (random < 0.25)
+                    babyType = MicrobeTypes.Red;
+                else if (random < 0.5)
+                    babyType = MicrobeTypes.Blue;
+                else if (random < 0.75)
+                    babyType = MicrobeTypes.Green;
+                else
+                    babyType = MicrobeTypes.Yellow;
+            }
+
+            return babyType;
+        }
+
+        public bool TryToReproduce(Microbe otherMicrobe) {
+
+            if (Random.value < 0.5) {
+                return false;
+            }
+            
+            MicrobeTypes babyType = GenerateBabyMicrobeType(otherMicrobe.MicrobeType);
+            Vector2 spawnPosition = spawner.GetValidSpawnPosition();
+
+            if (spawnPosition != Vector2.negativeInfinity){
+                Debug.Log(name + " and " + otherMicrobe.name + " have made a baby!");
+                Spawn(microbePrefab, babyType, spawnPosition);
+            }
+
+            if (Random.value < 10.0) {
+                var sleepState = StateManager.Lookup(typeof(Sleep));
+                stateMachine.ChangeState(sleepState);
+            }
+
+            return true;
         }
         
         // TODO for A2: Probably need attraction types for dating and mating.
